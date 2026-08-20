@@ -1,0 +1,116 @@
+---
+title: "Who works at ALEPE?"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Who works at ALEPE?}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+NOT_CRAN <- identical(Sys.getenv("NOT_CRAN"), "true")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = NOT_CRAN,
+  purl = NOT_CRAN,
+  fig.width = 7,
+  fig.height = 4.5
+)
+
+# See following-the-money.Rmd: charts are skipped, with a note, when the
+# API is unreachable at build time.
+have_rows <- function(x) {
+  NOT_CRAN && is.data.frame(x) && nrow(x) > 0L
+}
+offline_note <- function(what) {
+  knitr::asis_output(paste0(
+    "> The ALEPE API did not return ", what, " while this page was ",
+    "being built, so the chart is omitted. Run the code above ",
+    "yourself for current data.\n"
+  ))
+}
+```
+
+This vignette explores the composition of the Assembly's workforce with
+three endpoints: `alepe_staff()`, `alepe_positions()`, and
+`alepe_departments()`.
+
+```{r setup, message = FALSE}
+library(alepe)
+library(dplyr)
+library(ggplot2)
+```
+
+## Permanent vs. commissioned staff
+
+```{r}
+staff <- alepe_staff()
+
+staff |>
+  count(vinculo, sort = TRUE)
+```
+
+Admission dates are parsed to `Date`, so the hiring history of the
+current roster is easy to chart:
+
+```{r, eval = have_rows(staff)}
+staff |>
+  mutate(ano_admissao = as.integer(format(data_admissao, "%Y"))) |>
+  count(ano_admissao, vinculo) |>
+  ggplot(aes(x = ano_admissao, y = n, fill = vinculo)) +
+  geom_col() +
+  labs(
+    x = "Year of admission", y = "Staff members",
+    fill = NULL,
+    title = "Current ALEPE staff by year of admission"
+  ) +
+  theme_minimal()
+```
+
+```{r, echo = FALSE, eval = !have_rows(staff)}
+offline_note("the staff roster")
+```
+
+## Largest departments
+
+```{r}
+departments <- alepe_departments()
+```
+
+```{r, eval = have_rows(departments)}
+departments |>
+  summarise(total = sum(total), .by = nome_lotacao) |>
+  slice_max(total, n = 15) |>
+  ggplot(aes(x = reorder(nome_lotacao, total), y = total)) +
+  geom_col(fill = "#41ab5d") +
+  coord_flip() +
+  labs(
+    x = NULL, y = "Staff members",
+    title = "Fifteen largest ALEPE departments"
+  ) +
+  theme_minimal()
+```
+
+```{r, echo = FALSE, eval = !have_rows(departments)}
+offline_note("departments")
+```
+
+## Position structure
+
+Career positions in the roster encode class and level in a single
+string (`"ANALISTA LEGISLATIVO > CLASSE 1 > NÍVEL 10"`); a quick split
+reveals the career ladder:
+
+```{r}
+positions <- alepe_positions(status = "permanent")
+
+positions |>
+  tidyr::separate_wider_delim(
+    cargo_nivel,
+    delim = " > ",
+    names = c("career", "class", "level"),
+    too_few = "align_start"
+  ) |>
+  count(career, wt = total, sort = TRUE)
+```

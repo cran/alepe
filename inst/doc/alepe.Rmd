@@ -1,0 +1,121 @@
+---
+title: "Getting started with alepe"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with alepe}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+# Network chunks only run outside CRAN, with connectivity.
+NOT_CRAN <- identical(Sys.getenv("NOT_CRAN"), "true")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = NOT_CRAN,
+  purl = NOT_CRAN
+)
+```
+
+The `alepe` package provides a tidy interface to the open data API of
+the Legislative Assembly of the State of Pernambuco, Brazil
+([ALEPE](https://dadosabertos.alepe.pe.gov.br)). Every function returns
+a tibble with snake_case column names and parsed types, ready for the
+tidyverse.
+
+```{r setup}
+library(alepe)
+```
+
+## Available data
+
+| Function                  | Endpoint                | Contents                              |
+|---------------------------|-------------------------|---------------------------------------|
+| `alepe_representatives()` | `/parlamentares`        | Current state representatives         |
+| `alepe_staff()`           | `/servidores`           | Staff roster                          |
+| `alepe_positions()`       | `/cargos`               | Staff counts per position             |
+| `alepe_departments()`     | `/lotacoes`             | Staff counts per department           |
+| `alepe_remuneration()`    | `/remuneracao`          | Remuneration per position             |
+| `alepe_contracts()`       | `/contratos`            | Administrative contracts              |
+| `alepe_procurements()`    | `/licitacoes`           | Procurement processes                 |
+| `alepe_bills()`           | `/proposicoes/projetos` | Bills                                 |
+| `alepe_indications()`     | `/proposicoes/indicacoes` | Indications                         |
+| `alepe_requests()`        | `/proposicoes/requerimentos` | Requests                         |
+
+## A first query
+
+```{r}
+reps <- alepe_representatives()
+reps
+```
+
+Filters use an English vocabulary, but the original Portuguese API terms
+are accepted too — these are equivalent:
+
+```{r}
+permanent <- alepe_staff(status = "permanent")
+permanent_pt <- alepe_staff(status = "efetivo")
+identical(permanent, permanent_pt)
+```
+
+## Em português
+
+The same goes for the function names themselves: every endpoint
+function has an alias named after the endpoint it wraps, so a pipeline
+can stay in Portuguese from end to end.
+
+```{r}
+identical(alepe_servidores(status = "efetivo"), permanent)
+```
+
+`alepe_parlamentares()`, `alepe_cargos()`, `alepe_lotacoes()`,
+`alepe_remuneracao()`, `alepe_contratos()`, `alepe_licitacoes()`,
+`alepe_projetos()`, `alepe_indicacoes()`, `alepe_requerimentos()` and
+`alepe_limpar_cache()` complete the set. The propositions aliases take
+Portuguese argument names as well — `alepe_projetos(ano = 2024)`. See
+`?alepe_aliases`.
+
+## Caching
+
+Responses are cached under `tools::R_user_dir("alepe", "cache")` for six
+hours by default, so repeated calls in an analysis session do not hit
+the API again. Control it with:
+
+```{r, eval = FALSE}
+# Change expiry (seconds)
+options(alepe.cache_max_age = 24 * 3600)
+
+# Force a fresh download for one call
+alepe_staff(refresh = TRUE)
+
+# Wipe the cache
+alepe_cache_clear()
+```
+
+## Graceful failures
+
+Following CRAN policy for internet resources, `alepe` never errors on
+network problems. Requests are retried up to three times with
+exponential backoff; if the API remains unreachable, the function warns
+and returns a zero-row tibble with the documented columns, so pipelines
+downstream keep working:
+
+```{r, eval = FALSE}
+out <- alepe_contracts()
+#> Warning: The ALEPE open data API could not be reached.
+nrow(out)
+#> [1] 0
+```
+
+Warnings carry classes (`alepe_error_http`, `alepe_error_parse`) for
+programmatic handling with `withCallingHandlers()` or `tryCatch()`.
+
+## Verbosity
+
+Progress messages (powered by [cli](https://cli.r-lib.org)) appear in
+interactive sessions. Silence or force them with:
+
+```{r, eval = FALSE}
+options(alepe.quiet = TRUE)
+```

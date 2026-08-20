@@ -1,0 +1,121 @@
+---
+title: "Following the money: contracts and procurement"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Following the money: contracts and procurement}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+NOT_CRAN <- identical(Sys.getenv("NOT_CRAN"), "true")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = NOT_CRAN,
+  purl = NOT_CRAN,
+  fig.width = 7,
+  fig.height = 4.5
+)
+
+# Charts below are guarded with `have_rows()`: when the API is
+# unreachable while this vignette is being rendered, the endpoints
+# return zero-row tibbles by design, and an empty chart would be worse
+# than an honest note.
+have_rows <- function(x) {
+  NOT_CRAN && is.data.frame(x) && nrow(x) > 0L
+}
+offline_note <- function(what) {
+  knitr::asis_output(paste0(
+    "> The ALEPE API did not return ", what, " while this page was ",
+    "being built, so the chart is omitted. Run the code above ",
+    "yourself for current data.\n"
+  ))
+}
+```
+
+Public procurement data is where open legislative data meets social
+accountability. This vignette explores the Assembly's contracts and
+bidding processes.
+
+```{r setup, message = FALSE}
+library(alepe)
+library(dplyr)
+library(ggplot2)
+```
+
+## Contract values by modality
+
+```{r}
+contracts <- alepe_contracts()
+
+contracts |>
+  summarise(
+    n = n(),
+    total_brl = sum(valor, na.rm = TRUE),
+    .by = modalidade
+  ) |>
+  arrange(desc(total_brl))
+```
+
+## Largest contractors
+
+```{r, eval = have_rows(contracts)}
+contracts |>
+  summarise(total_brl = sum(valor, na.rm = TRUE), .by = contratada) |>
+  slice_max(total_brl, n = 10) |>
+  ggplot(aes(x = reorder(contratada, total_brl), y = total_brl / 1e6)) +
+  geom_col(fill = "#e6550d") +
+  coord_flip() +
+  labs(
+    x = NULL, y = "Total contracted (BRL, millions)",
+    title = "Ten largest ALEPE contractors"
+  ) +
+  theme_minimal()
+```
+
+```{r, echo = FALSE, eval = !have_rows(contracts)}
+offline_note("contracts")
+```
+
+## Contracts active today
+
+Validity dates are parsed to `Date`, so filtering active contracts is a
+one-liner:
+
+```{r}
+contracts |>
+  filter(vigencia_inicio <= Sys.Date(), vigencia_fim >= Sys.Date()) |>
+  select(contratada, objeto, valor, vigencia_fim) |>
+  arrange(vigencia_fim)
+```
+
+## Procurement outcomes
+
+`/licitacoes` is the slowest endpoint of the API — allow it half a
+minute, and remember that a failed request yields a zero-row tibble
+rather than an error:
+
+```{r}
+procurements <- alepe_procurements()
+nrow(procurements)
+```
+
+```{r, eval = have_rows(procurements)}
+procurements |>
+  count(ano, status) |>
+  ggplot(aes(x = ano, y = n, fill = status)) +
+  geom_col() +
+  labs(
+    x = NULL, y = "Processes",
+    fill = NULL,
+    title = "ALEPE procurement processes by year and status"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  guides(fill = guide_legend(ncol = 1))
+```
+
+```{r, echo = FALSE, eval = !have_rows(procurements)}
+offline_note("procurement processes")
+```
