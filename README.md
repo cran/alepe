@@ -50,8 +50,9 @@ alepe_bills(year = 2024)
 ```
 
 Filter values use an English vocabulary (`"permanent"`,
-`"commissioned"`, `"seconded"`), but the original API terms
-(`"efetivo"`, `"comissionado"`, `"a-disposicao"`) are accepted as well.
+`"commissioned"`, `"seconded"`, `"lent"`), but the original API terms
+(`"efetivo"`, `"comissionado"`, `"a-disposicao"`, `"efetivo-cedido"`)
+are accepted as well.
 Column names keep the official Portuguese field names, normalized to
 snake_case, so results stay traceable to the source.
 

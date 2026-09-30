@@ -28,6 +28,9 @@
 #' `alepe_servidores(status = "efetivo")` and
 #' `alepe_staff(status = "permanent")` are the same query.
 #'
+#' @param status Employment status filter, as in [alepe_staff()] and
+#'   [alepe_positions()]. `"lent"` (`"efetivo-cedido"`) is accepted by
+#'   `alepe_servidores()` only.
 #' @inheritParams alepe_staff
 #' @inheritParams alepe_bills
 #' @returns The same tibble the corresponding English function returns.

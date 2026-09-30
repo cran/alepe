@@ -23,9 +23,13 @@ alepe_representatives <- function(refresh = FALSE) {
 #' employment status.
 #'
 #' @param status Employment status filter. One of `"permanent"`,
-#'   `"commissioned"`, or `"seconded"` (the original API terms
-#'   `"efetivo"`, `"comissionado"`, and `"a-disposicao"` are also
-#'   accepted), or `NULL` (default) for all.
+#'   `"commissioned"`, `"seconded"` (staff from other bodies placed at
+#'   the Assembly's disposal), or `"lent"` (the Assembly's own permanent
+#'   staff lent to other bodies, a subset of `"permanent"`); the original
+#'   API terms `"efetivo"`, `"comissionado"`, `"a-disposicao"`, and
+#'   `"efetivo-cedido"` are also accepted. `NULL` (default) for all.
+#'   Lent staff are published with `vinculo` `"Efetivo"`, so this filter
+#'   is the only way to tell them apart.
 #' @inheritParams alepe_representatives
 #' @returns A tibble with one row per staff member: `nome`,
 #'   `codigo_lotacao`, `nome_lotacao`, `cargo_efetivo`, `cargo_nivel`,
@@ -40,11 +44,10 @@ alepe_staff <- function(status = NULL, refresh = FALSE) {
     cargo_efetivo = "chr", cargo_nivel = "chr", vinculo = "chr",
     data_admissao = "date"
   )
-  records <- alepe_fetch_json(
-    "servidores",
-    vinculo = map_status(status),
-    refresh = refresh
-  )
+  # Resolved before the fetch: an argument evaluated lazily inside the
+  # fetch would be caught there and reported as an unreachable API.
+  vinculo <- map_status(status, lent = TRUE)
+  records <- alepe_fetch_json("servidores", vinculo = vinculo, refresh = refresh)
   out <- records_to_tibble(records, schema)
   report_rows(out, "staff members")
 }
@@ -54,7 +57,12 @@ alepe_staff <- function(status = NULL, refresh = FALSE) {
 #' Retrieves the number of staff members per position/level, optionally
 #' filtered by employment status.
 #'
-#' @inheritParams alepe_staff
+#' @param status Employment status filter. One of `"permanent"`,
+#'   `"commissioned"`, or `"seconded"` (the original API terms
+#'   `"efetivo"`, `"comissionado"`, and `"a-disposicao"` are also
+#'   accepted), or `NULL` (default) for all. Unlike [alepe_staff()],
+#'   `"lent"` is not available: the API ignores it for this endpoint.
+#' @inheritParams alepe_representatives
 #' @returns A tibble with `total` and `cargo_nivel`. Zero rows (with a
 #'   warning) on network failure.
 #' @examplesIf interactive()
@@ -62,11 +70,10 @@ alepe_staff <- function(status = NULL, refresh = FALSE) {
 #' @export
 alepe_positions <- function(status = NULL, refresh = FALSE) {
   schema <- c(total = "int", cargo_nivel = "chr")
-  records <- alepe_fetch_json(
-    "cargos",
-    vinculo = map_status(status),
-    refresh = refresh
-  )
+  # Resolved before the fetch: an argument evaluated lazily inside the
+  # fetch would be caught there and reported as an unreachable API.
+  vinculo <- map_status(status)
+  records <- alepe_fetch_json("cargos", vinculo = vinculo, refresh = refresh)
   out <- records_to_tibble(records, schema)
   report_rows(out, "positions")
 }

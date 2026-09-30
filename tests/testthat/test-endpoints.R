@@ -180,3 +180,27 @@ test_that("proposition detail parses one full record", {
 test_that("detail mode requires year alongside number", {
   expect_error(alepe_bills(number = 10), class = "alepe_error_input")
 })
+
+test_that("status = 'lent' reaches /servidores but is refused by positions", {
+  sent <- NULL
+  local_mocked_bindings(alepe_fetch_json = function(endpoint, ...) {
+    sent <<- list(...)$vinculo
+    fixture_json("servidores.json")
+  })
+
+  alepe_staff(status = "lent")
+  expect_equal(sent, "efetivo-cedido")
+  alepe_servidores(status = "efetivo-cedido")
+  expect_equal(sent, "efetivo-cedido")
+
+  expect_error(alepe_positions(status = "lent"), class = "rlang_error")
+})
+
+test_that("an invalid status is an input error, not a network warning", {
+  # The mock never touches `...`, as the real fetch layer would only
+  # evaluate it inside its own error handler.
+  local_mocked_bindings(alepe_fetch_json = function(...) list())
+
+  expect_error(alepe_staff(status = "nope"), class = "rlang_error")
+  expect_error(alepe_positions(status = "lent"), class = "rlang_error")
+})

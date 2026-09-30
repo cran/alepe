@@ -8,9 +8,13 @@ alepe_staff(status = NULL, refresh = FALSE)
 }
 \arguments{
 \item{status}{Employment status filter. One of \code{"permanent"},
-\code{"commissioned"}, or \code{"seconded"} (the original API terms
-\code{"efetivo"}, \code{"comissionado"}, and \code{"a-disposicao"} are also
-accepted), or \code{NULL} (default) for all.}
+\code{"commissioned"}, \code{"seconded"} (staff from other bodies placed at
+the Assembly's disposal), or \code{"lent"} (the Assembly's own permanent
+staff lent to other bodies, a subset of \code{"permanent"}); the original
+API terms \code{"efetivo"}, \code{"comissionado"}, \code{"a-disposicao"}, and
+\code{"efetivo-cedido"} are also accepted. \code{NULL} (default) for all.
+Lent staff are published with \code{vinculo} \code{"Efetivo"}, so this filter
+is the only way to tell them apart.}
 
 \item{refresh}{If \code{TRUE}, bypass the local cache.}
 }

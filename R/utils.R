@@ -232,10 +232,15 @@ decode_numeric_entities <- function(x) {
 #'
 #' @param status `NULL` (no filter) or one of `"permanent"`,
 #'   `"commissioned"`, `"seconded"`, `"efetivo"`, `"comissionado"`,
-#'   `"a-disposicao"`.
+#'   `"a-disposicao"`; with `lent = TRUE`, also `"lent"` and
+#'   `"efetivo-cedido"`.
+#' @param lent Whether to accept the `efetivo-cedido` value. Only
+#'   `/servidores` honours it; `/cargos` silently ignores it and returns
+#'   every status, so it must be rejected there (D22).
 #' @returns The API value, or `NULL`.
 #' @noRd
-map_status <- function(status, error_call = rlang::caller_env()) {
+map_status <- function(status, lent = FALSE,
+                       error_call = rlang::caller_env()) {
   if (is.null(status)) {
     return(NULL)
   }
@@ -247,6 +252,9 @@ map_status <- function(status, error_call = rlang::caller_env()) {
     comissionado = "comissionado",
     `a-disposicao` = "a-disposicao"
   )
+  if (lent) {
+    map <- c(map, lent = "efetivo-cedido", `efetivo-cedido` = "efetivo-cedido")
+  }
   status <- rlang::arg_match(status, names(map), error_call = error_call)
   unname(map[[status]])
 }

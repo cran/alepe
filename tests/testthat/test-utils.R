@@ -39,6 +39,9 @@ test_that("map_status accepts English and Portuguese vocabularies", {
   expect_equal(map_status("efetivo"), "efetivo")
   expect_equal(map_status("seconded"), "a-disposicao")
   expect_error(map_status("nope"), class = "rlang_error")
+  expect_equal(map_status("lent", lent = TRUE), "efetivo-cedido")
+  expect_equal(map_status("efetivo-cedido", lent = TRUE), "efetivo-cedido")
+  expect_error(map_status("lent"), class = "rlang_error")
 })
 
 test_that("records_to_tibble builds typed tibbles and handles NULL", {

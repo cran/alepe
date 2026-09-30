@@ -10,7 +10,8 @@ alepe_positions(status = NULL, refresh = FALSE)
 \item{status}{Employment status filter. One of \code{"permanent"},
 \code{"commissioned"}, or \code{"seconded"} (the original API terms
 \code{"efetivo"}, \code{"comissionado"}, and \code{"a-disposicao"} are also
-accepted), or \code{NULL} (default) for all.}
+accepted), or \code{NULL} (default) for all. Unlike \code{\link[=alepe_staff]{alepe_staff()}},
+\code{"lent"} is not available: the API ignores it for this endpoint.}
 
 \item{refresh}{If \code{TRUE}, bypass the local cache.}
 }
